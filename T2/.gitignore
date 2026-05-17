@@ -1,7 +1,6 @@
 __pycache__/
 *.png
 
-# Dataset: carpeta visible en repo, sin imágenes
 fish_image/*
 !fish_image/
 !fish_image/.gitkeep
