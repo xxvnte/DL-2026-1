@@ -9,6 +9,7 @@ T2/
 ├── script.py            # código principal
 ├── requirements.txt     # dependencias
 ├── fish_image/          # dataset (aquí van carpetas con imagenes en .png)
+├── results/             # resultados: .pth, .png, logs.txt (se crea al ejecutar)
 ├── .gitignore
 └── README.md
 ```
@@ -43,6 +44,8 @@ Ultimo comando debe mostrar "True" y GPU, después se puede ejecutar `python scr
 | ResNetModel    | ResNet50 ImageNet + fine-tuning   | 25     |
 | GoogLeNetModel | GoogLeNet ImageNet + fine-tuning  | 25     |
 
-Por cada modelo: mejor checkpoint `{Modelo}_best.pth`, reporte en test, `cm_{Modelo}.png`, `per_class_{Modelo}.png`.
+Por cada modelo (en `results/`): mejor checkpoint `{Modelo}_best.pth`, reporte en test, `cm_{Modelo}.png`, `per_class_{Modelo}.png`.
 
-Gráficos globales: `convergence_scratch.png`, `convergence_transfer.png`, `convergence.png`, `training_times.png`, `final_comparison.png` + resumen en consola.
+Gráficos globales en `results/`: `convergence_scratch.png`, `convergence_transfer.png`, `convergence.png`, `training_times.png`, `final_comparison.png`.
+
+Cada ejecución reescribe `results/logs.txt` con la salida completa de la terminal.

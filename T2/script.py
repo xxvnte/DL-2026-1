@@ -1,4 +1,8 @@
+import os
+import sys
 import time
+from contextlib import contextmanager
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -9,7 +13,9 @@ from sklearn.metrics import classification_report, confusion_matrix
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
 
-DATA = "./fish_image"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
+DATA = os.path.join(SCRIPT_DIR, "fish_image")
 INPUT_SIZE = 224
 BATCH_SIZE = 16
 WORKERS = 2
@@ -25,7 +31,44 @@ torch.manual_seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+
+
+def resultPath(filename):
+    return os.path.join(RESULTS_DIR, filename)
+
+
+class TeeStream:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data):
+        if not data:
+            return
+        for stream in self.streams:
+            stream.write(data)
+            stream.flush()
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+    def isatty(self):
+        return getattr(self.streams[0], "isatty", lambda: False)()
+
+
+@contextmanager
+def sessionLogging():
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    log_path = resultPath("logs.txt")
+    with open(log_path, "w", encoding="utf-8") as log_file:
+        stdout = TeeStream(sys.__stdout__, log_file)
+        stderr = TeeStream(sys.__stderr__, log_file)
+        prev_stdout, prev_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = stdout, stderr
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = prev_stdout, prev_stderr
 
 
 def countParameters(model, trainable_only=False):
@@ -362,7 +405,7 @@ def fitModel(
     print()
 
     model.load_state_dict(best_state)
-    torch.save(model.state_dict(), f"{run_label}_best.pth")
+    torch.save(model.state_dict(), resultPath(f"{run_label}_best.pth"))
     return model, metrics_log
 
 
@@ -428,9 +471,10 @@ def saveConvergencePlot(logs, run_labels, output_file="convergence.png"):
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(output_file, dpi=150)
+    out_path = resultPath(output_file)
+    plt.savefig(out_path, dpi=150)
     plt.close()
-    print(f"Saved: {output_file}")
+    print(f"Saved: {out_path}")
 
 
 def saveConfusionMatrix(y_true, y_pred, labels, run_label):
@@ -451,7 +495,7 @@ def saveConfusionMatrix(y_true, y_pred, labels, run_label):
     ax.set_xlabel("Predicted")
     ax.set_ylabel("True")
     plt.tight_layout()
-    out_path = f"cm_{run_label}.png"
+    out_path = resultPath(f"cm_{run_label}.png")
     plt.savefig(out_path, dpi=150)
     plt.close()
     print(f"Saved: {out_path}")
@@ -483,7 +527,7 @@ def savePerClassBarChart(y_true, y_pred, labels, run_label):
     ax.legend()
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    out_path = f"per_class_{run_label}.png"
+    out_path = resultPath(f"per_class_{run_label}.png")
     plt.savefig(out_path, dpi=150)
     plt.close()
     print(f"Saved: {out_path}")
@@ -498,9 +542,10 @@ def saveTrainingTimeChart(logs, run_labels):
     ax.set_ylabel("Time (minutes)")
     ax.set_xlabel("Model")
     plt.tight_layout()
-    plt.savefig("training_times.png", dpi=150)
+    out_path = resultPath("training_times.png")
+    plt.savefig(out_path, dpi=150)
     plt.close()
-    print("Saved: training_times.png")
+    print(f"Saved: {out_path}")
 
 
 def saveAccuracyComparison(summary_rows, run_labels):
@@ -520,9 +565,10 @@ def saveAccuracyComparison(summary_rows, run_labels):
     )
     ax.legend()
     plt.tight_layout()
-    plt.savefig("final_comparison.png", dpi=150)
+    out_path = resultPath("final_comparison.png")
+    plt.savefig(out_path, dpi=150)
     plt.close()
-    print("Saved: final_comparison.png")
+    print(f"Saved: {out_path}")
 
 
 def transferLearningOptimizer(net, epoch_count):
@@ -573,6 +619,10 @@ def setupGoogLeNetModel(num_classes):
 
 
 def main():
+    print(f"Using device: {device}")
+    print(f"Results directory: {RESULTS_DIR}")
+    print()
+
     train_loader, val_loader, test_loader, num_classes, class_labels = (
         buildDataLoaders()
     )
@@ -641,4 +691,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with sessionLogging():
+        main()
