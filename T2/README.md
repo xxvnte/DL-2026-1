@@ -17,12 +17,22 @@ T2/
 
 Desde `T2/`:
 
-```bash
-pip install -r requirements.txt
+```powershell
+python -m pip install --user -r requirements.txt
 python script.py
 ```
 
-Requisitos: Python 3.10+, GPU opcional (CUDA si está disponible).
+Requisitos: Python 3.10+, GPU opcional
+
+### Para usar GPU (recomendado)
+
+```powershell
+python -m pip uninstall torch torchvision -y
+python -m pip install --user torch==2.3.0 torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cu121
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+Ultimo comando debe mostrar "True" y GPU, después se puede ejecutar `python script.py`.
 
 ## Modelos entrenados
 

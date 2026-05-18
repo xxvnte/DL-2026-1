@@ -12,7 +12,7 @@ from torchvision import datasets, models, transforms
 DATA = "./fish_image"
 INPUT_SIZE = 224
 BATCH_SIZE = 16
-WORKERS = 4
+WORKERS = 2
 RANDOM_SEED = 42
 SPLIT_TRAIN = 0.70
 SPLIT_VAL = 0.15
@@ -184,8 +184,9 @@ def makeResNetModel(num_classes, unfreeze_blocks=2):
 
 def makeGoogLeNetModel(num_classes, unfreeze_blocks=1):
     net = models.googlenet(
-        weights=models.GoogLeNet_Weights.IMAGENET1K_V1, aux_logits=False
+        weights=models.GoogLeNet_Weights.IMAGENET1K_V1, aux_logits=True
     )
+    net.aux_logits = False
 
     for param in net.parameters():
         param.requires_grad = False
@@ -382,12 +383,21 @@ def collectPredictions(model, loader):
 def evaluateOnTest(model, test_loader, labels, run_label, loss_fn):
     test_loss, test_acc = validateEpoch(model, test_loader, loss_fn)
     y_true, y_pred = collectPredictions(model, test_loader)
+    class_idx = list(range(len(labels)))
 
     print()
     print("=================================================")
     print(f"  {run_label} — Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.4f}")
     print("=================================================")
-    print(classification_report(y_true, y_pred, target_names=labels))
+    print(
+        classification_report(
+            y_true,
+            y_pred,
+            labels=class_idx,
+            target_names=labels,
+            zero_division=0,
+        )
+    )
 
     saveConfusionMatrix(y_true, y_pred, labels, run_label)
     savePerClassBarChart(y_true, y_pred, labels, run_label)
@@ -424,7 +434,8 @@ def saveConvergencePlot(logs, run_labels, output_file="convergence.png"):
 
 
 def saveConfusionMatrix(y_true, y_pred, labels, run_label):
-    matrix = confusion_matrix(y_true, y_pred)
+    class_idx = list(range(len(labels)))
+    matrix = confusion_matrix(y_true, y_pred, labels=class_idx)
     side = max(8, len(labels))
     fig, ax = plt.subplots(figsize=(side, side - 1))
     sns.heatmap(
@@ -447,8 +458,15 @@ def saveConfusionMatrix(y_true, y_pred, labels, run_label):
 
 
 def savePerClassBarChart(y_true, y_pred, labels, run_label):
-    matrix = confusion_matrix(y_true, y_pred)
-    class_scores = matrix.diagonal() / matrix.sum(axis=1)
+    class_idx = list(range(len(labels)))
+    matrix = confusion_matrix(y_true, y_pred, labels=class_idx)
+    row_sums = matrix.sum(axis=1)
+    class_scores = np.divide(
+        matrix.diagonal(),
+        row_sums,
+        out=np.zeros(len(labels), dtype=float),
+        where=row_sums > 0,
+    )
     fig, ax = plt.subplots(figsize=(max(10, len(labels) * 0.9), 5))
     bars = ax.bar(labels, class_scores, color=PLOT_PALETTE[0])
     ax.bar_label(bars, labels=[f"{v:.2f}" for v in class_scores], padding=3, fontsize=8)
@@ -554,7 +572,7 @@ def setupGoogLeNetModel(num_classes):
     return net, optimizer, scheduler, epochs
 
 
-def Main():
+def main():
     train_loader, val_loader, test_loader, num_classes, class_labels = (
         buildDataLoaders()
     )
@@ -623,4 +641,4 @@ def Main():
 
 
 if __name__ == "__main__":
-    Main()
+    main()
