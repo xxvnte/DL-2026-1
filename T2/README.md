@@ -46,6 +46,8 @@ Ultimo comando debe mostrar "True" y GPU, después se puede ejecutar `python scr
 
 Por cada modelo (en `results/`): mejor checkpoint `{Modelo}_best.pth`, reporte en test, `cm_{Modelo}.png`, `per_class_{Modelo}.png`.
 
-Gráficos globales en `results/`: `convergence_scratch.png`, `convergence_transfer.png`, `convergence.png`, `training_times.png`, `final_comparison.png`.
+Gráficos en `results/`: `convergence_scratch.png`, `convergence_transfer.png`, `convergence.png`, `training_times.png`, `final_comparison.png`.
 
 Cada ejecución reescribe `results/logs.txt` con la salida completa de la terminal.
+
+Las particiones utilizadas del dataset estan en `results/partitions.json`.
