@@ -1,0 +1,5 @@
+*.gguf
+venv_ft/
+outputs_*/
+__pycache__/
+*.pyc
